@@ -5,6 +5,10 @@ import sys
 def setObject(value):
     global shape
     shape = value
+    try: # Reset shape_coord if switching shape in the middle of triangle creation
+        shape_coords = ()
+    except:
+        pass
 
 def getObject(event):
     obj_list = event.widget.find_overlapping(event.x, event.y, event.x, event.y)
@@ -74,31 +78,64 @@ def fileMenu(frame):
     # create a toplevel menu
     menubar = Menu(master)
     menubar.add_command(label="Quit", foreground="red", command=frame.quit)
-    
+
     # create draw pulldown menus
     drawmenu = Menu(menubar, tearoff=0)
     drawmenu.add_command(label="Circle", command=lambda *args: setObject("circle"))
     drawmenu.add_command(label="Square", command=lambda *args: setObject("square"))
     drawmenu.add_command(label="Triangle", command=lambda *args: setObject("triangle"))
     menubar.add_cascade(label="Draw", menu=drawmenu)
-    
+
     menubar.add_cascade(label="Set Fill", menu=colorMenu(menubar, False, "fill"))
     menubar.add_cascade(label="Set Outline", menu=colorMenu(menubar, False, "edge"))
     master.config(menu=menubar)
 
 
 # Shape creation and editing
+def startObject(event):
+    global shape_coords
+    try:
+        last_object = app.canvas.find_all()
+        num = len(last_object)
+        if num != 0:
+            last_object = app.canvas.itemcget(last_object[num-1], "tags")
+            print last_object
+            if shape == "triangle" and last_object != "triangle":
+                shape_coords = []
+    except:
+        pass
+    if shape != "triangle":
+        shape_coords = []
+    try:
+        if len(shape_coords) < 5:
+            shape_coords += [event.x, event.y]
+        else:
+            shape_coords = [event.x, event.y]
+    except:
+        shape_coords = [event.x, event.y]
+    print shape_coords
+
 def createObject(event):
     if shape == "circle":
-        # box = (event.x - 20, event.y - 20, event.x + 20, event.y + 20)
-        obj = app.canvas.create_oval(event.x - 20, event.y - 20, event.x + 20, event.y + 20, \
+        rad = ( (shape_coords[0] - event.x)**2 + (shape_coords[1] - event.y)**2 )**0.5
+        if rad == 0: # Default circle
+            rad = 20
+        obj = app.canvas.create_oval(shape_coords[0] - rad, shape_coords[1] - rad, shape_coords[0] + rad, shape_coords[1] + rad, \
                             fill=fill, outline=edge, activefill="red", tags="circle")
     elif shape == "square":
-        obj = app.canvas.create_rectangle(event.x, event.y, event.x + 30, event.y + 30, \
+        if shape_coords == [event.x, event.y]: # Default square
+            event.x += 30
+            event.y += 30
+        obj = app.canvas.create_rectangle(shape_coords[0], shape_coords[1], event.x, event.y, \
                             fill=fill, outline=edge, activefill="red", tags="square")
     elif shape == "triangle":
-        obj = app.canvas.create_polygon(event.x, event.y, event.x + 10, event.y + 20, \
-                            event.x - 10, event.y + 20, fill=fill, outline=edge, activefill="red", tags="triangle")
+        if len(shape_coords) < 6: # Draw line until complete triangle
+            if len(shape_coords) == 4:
+                app.canvas.create_line(shape_coords[0], shape_coords[1], shape_coords[2], shape_coords[3], tags="line")
+        else:
+            app.canvas.delete("line")
+            obj = app.canvas.create_polygon(shape_coords[0], shape_coords[1], shape_coords[2], shape_coords[3], \
+                            shape_coords[4], shape_coords[5], fill=fill, outline=edge, activefill="red", tags="triangle")
 
 
 def selectObject(event):
@@ -139,7 +176,7 @@ class editDims:
             self.width.focus_set()
             Label(top, text="Enter new height").pack()
             self.height = Entry(top)
-            self.height.pack(padx=5)  
+            self.height.pack(padx=5)
 
 
         b = Button(top, text="Enter", command=lambda *args: self.update(obj, obj_type))
@@ -164,7 +201,7 @@ def editObject(obj):
     obj_type = app.canvas.itemcget(obj, "tags")
     d = editDims(master, obj, obj_type)
     master.wait_window(d.top)
-  
+
 
 class App:
     def __init__(self, master):
@@ -175,7 +212,7 @@ class App:
         setEdge("black")
 
         fileMenu(frame)
-        
+
         # Default color labels
         Label(frame, text="Fill Color = ").grid(row=0, column=0, sticky=E)
         self.fill = Label(frame, width=4, background=fill)
@@ -186,7 +223,8 @@ class App:
 
         # Canvas setup and bindings
         self.canvas = Canvas(frame, width=300, height=300)
-        self.canvas.bind("<Button-1>", createObject) # Binds left mouse to object creation
+        self.canvas.bind("<Button-1>", startObject) # Binds left mouse to start of object creation
+        self.canvas.bind("<ButtonRelease-1>", createObject) # Binds left mouse release to object creation
         self.canvas.bind("<Button-2>", selectObject) # Binds center mouse to select object to move
         self.canvas.bind("<ButtonRelease-2>", dropObject) # Ends an object move
         self.canvas.bind("<Button-3>", popupMenu) # Binds right mouse to object edit
