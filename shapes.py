@@ -95,39 +95,27 @@ def fileMenu(frame):
 def startObject(event):
     global shape_coords
     try:
-        last_object = app.canvas.find_all()
-        num = len(last_object)
-        if num != 0:
-            last_object = app.canvas.itemcget(last_object[num-1], "tags")
-            print last_object
-            if shape == "triangle" and last_object != "triangle":
-                shape_coords = []
-    except:
-        pass
-    if shape != "triangle":
-        shape_coords = []
-    try:
-        if len(shape_coords) < 5:
-            shape_coords += [event.x, event.y]
-        else:
-            shape_coords = [event.x, event.y]
+        shape_coords += [event.x, event.y]
+        print shape_coords
     except:
         shape_coords = [event.x, event.y]
-    print shape_coords
 
 def createObject(event):
+    global shape_coords
     if shape == "circle":
         rad = ( (shape_coords[0] - event.x)**2 + (shape_coords[1] - event.y)**2 )**0.5
         if rad == 0: # Default circle
             rad = 20
         obj = app.canvas.create_oval(shape_coords[0] - rad, shape_coords[1] - rad, shape_coords[0] + rad, shape_coords[1] + rad, \
                             fill=fill, outline=edge, activefill="red", tags="circle")
+        shape_coords = []
     elif shape == "square":
         if shape_coords == [event.x, event.y]: # Default square
             event.x += 30
             event.y += 30
         obj = app.canvas.create_rectangle(shape_coords[0], shape_coords[1], event.x, event.y, \
                             fill=fill, outline=edge, activefill="red", tags="square")
+        shape_coords = []
     elif shape == "triangle":
         if len(shape_coords) < 6: # Draw line until complete triangle
             if len(shape_coords) == 4:
@@ -136,6 +124,7 @@ def createObject(event):
             app.canvas.delete("line")
             obj = app.canvas.create_polygon(shape_coords[0], shape_coords[1], shape_coords[2], shape_coords[3], \
                             shape_coords[4], shape_coords[5], fill=fill, outline=edge, activefill="red", tags="triangle")
+            shape_coords = []
 
 
 def selectObject(event):
@@ -147,7 +136,6 @@ def selectObject(event):
 
 def dropObject(event):
     if move:
-        #import pdb; pdb.set_trace()
         coords = app.canvas.coords(move)
         box = app.canvas.bbox(move)
         x_offset = event.x - (box[0]+(box[2]-box[0])/2)
