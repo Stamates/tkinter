@@ -15,7 +15,7 @@ $ python shapes.py
     * Left click and drag creates a new shape at that location (shape created upon release of mouse button)
         * Circles are created at the center point
         * Squares are created at the top left corner
-        * Triangles are created at the top point
+        * Triangles are created by clicking on 3 consecutive points
     * Middle click and drag to move shapes (drops shape in new location upon release)
     * Right click on canvas
         * On open area - menu for selecting shapes to draw and a delete all shapes option
